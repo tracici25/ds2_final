@@ -247,9 +247,29 @@ model.lda$bestTune
 
 ```
 
-
+## Random Forest
 ```{r}
+rf.grid <- expand.grid(mtry = 1:10,
+                       splitrule = "gini",
+                       min.node.size = seq(from = 2, to = 10, by = 2))
+set.seed(2)
+model.rf <- train(x = x,
+                  y = y,
+                method = "ranger",
+                tuneGrid = rf.grid,
+                metric = "ROC",
+                trControl = ctrl)
 
+ggplot(model.rf, highlight = TRUE)
+
+test.pred.prob = predict(model.rf, newdata = x2, type = "prob")[,1]
+test.pred = rep("Yes", length(test.pred.prob))
+test.pred[test.pred.prob<0.99] = "No"
+
+confusionMatrix(data = as.factor(test.pred),
+                reference = y2,
+                positive = "Yes")
+model.rf$bestTune
 
 ```
 
