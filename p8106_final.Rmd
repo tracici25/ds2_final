@@ -179,6 +179,33 @@ confusionMatrix(data = as.factor(glm.pred),
 model.glm$bestTune
 ```
 
+## GLMN
+```{r}
+glmn.grid <- expand.grid(.alpha = seq(0, 1, length = 6),
+                        .lambda = exp(seq(-8, -2, length = 20)))
+
+set.seed(1)
+
+model.glmn <- train(x = data.matrix(x),
+                    y = y,
+                    method = "glmnet",
+                    tuneGrid = glmn.grid,
+                    metric = "ROC",
+                    trControl = ctrl)
+
+glmn.pred.prob = predict(model.glmn, newdata = data.matrix(x2), type = "prob")[,1]
+
+glmn.pred = rep("Yes", length(glmn.pred.prob))
+
+glmn.pred[glmn.pred.prob < 0.95] = "No"
+
+confusionMatrix(data = as.factor(glmn.pred),
+                reference = y2,
+                positive = "Yes")
+
+model.glmn$bestTune
+```
+
 ## MARS
 ```{r}
 set.seed(1)
@@ -315,15 +342,74 @@ model.gbma$bestTune
 
 ## svml
 ```{r}
+set.seed(1)
 
+model.svml <- train(x = x,
+                  y = y, 
+                  method = "svmLinear",
+                  tuneGrid = data.frame(C = exp(seq(0,2,len = 20))),
+                  trControl = ctrl)
+
+plot(model.svml, highlight = TRUE, xTrans = log)
+
+svml.pred.prob = predict(model.svml, newdata = x2, type = "prob")[,1]
+
+svml.pred = rep("Yes", length(svml.pred.prob))
+
+svml.pred[svml.pred.prob < 0.95] = "No"
+
+confusionMatrix(data = as.factor(svml.pred),
+                reference = y2,
+                positive = "Yes")
+
+model.svml$bestTune
 ```
 
 ## svmr
 ```{r}
+svmr.grid <- expand.grid(C = exp(seq(-1,4,len = 10)),
+                         sigma = exp(seq(-8,0,len = 10)))
 
 
+set.seed(1)
+
+model.svmr <- train(x = x,
+                  y = y,
+                  method = "svmRadialSigma",
+                  preProcess = c("center", "scale"),
+                  tuneGrid = svmr.grid,
+                  trControl = ctrl)
+
+plot(model.svmr, highlight = TRUE)
+
+svmr.pred.prob = predict(model.svmr, newdata = x2, type = "prob")[,1]
+
+svmr.pred = rep("Yes", length(svmr.pred.prob))
+
+svmr.pred[svmr.pred.prob < 0.95] = "No"
+
+confusionMatrix(data = as.factor(svmr.pred),
+                reference = y2,
+                positive = "Yes")
+
+model.svmr$bestTune
 ```
 
+# Comparison
+
+```{r}
+res <- resamples(list(glm = model.glm, 
+                      glmn = model.glmn, 
+                      mars = model.mars, 
+                      gam = model.gam,
+                      lda = model.lda,
+                      rf = model.rf,
+                      gbmA = gbmA.fit))
+
+summary(res)
+
+bwplot(res, metric = "ROC")
+```
 
 
 
