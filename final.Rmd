@@ -1,6 +1,6 @@
 ---
-title: "DS2 Midterm"
-author: "Mufeng Xu"
+title: "DS2 Final"
+author: "Yuechen Liu, Yanhao Li, Mufeng Xu"
 date: "5/12/2021"
 output: html_document
 ---
@@ -17,13 +17,30 @@ library(pROC)
 library(AppliedPredictiveModeling)
 ```
 
+# Chunk 1
 ```{r}
 # Load and tidy
 stroke_df = read_csv("healthcare-dataset-stroke-data.csv") %>% 
-  dplyr::select(gender:stroke) %>% 
+  dplyr::select(gender:stroke)
+
+stroke_df %>% filter(bmi == "N/A") %>% count()
+
+# number of missing NAs
+stroke_df = stroke_df %>% 
   filter(!bmi == "N/A") %>% 
   na.omit() %>% 
   janitor::clean_names() %>% 
+  mutate(bmi = as.numeric(bmi),
+         stroke = as.factor(stroke))
+# only bmi contains N/A data blocks
+
+# Summary Stats
+library(arsenal)
+stats = tableby(stroke ~ gender + age + hypertension + heart_disease + ever_married + work_type + residence_type + avg_glucose_level + bmi + smoking_status, data = stroke_df)
+summary(stats, text = TRUE) %>% knitr::kable()
+
+# Cleaning data
+stroke_df = stroke_df %>% 
   mutate(
     gender = case_when(gender == "Male" ~ 0,
                        gender == "Female" ~ 1,
@@ -41,14 +58,12 @@ stroke_df = read_csv("healthcare-dataset-stroke-data.csv") %>%
                                smoking_status == "never smoked" ~ 1,
                                smoking_status == "smokes" ~ 2,
                                smoking_status == "Unknown" ~ 3)
-  ) %>% 
-  mutate(bmi = as.numeric(bmi),
-         stroke = as.factor(stroke))
+  )
 
-summary(stroke_df)
 ```
 
-# EDA
+
+# Chunk 2 EDA
 ```{r}
 # Correlation Matrix
 model.matrix(~0+., data = stroke_df) %>% 
@@ -60,6 +75,7 @@ model.matrix(~0+., data = stroke_df) %>%
 # scatter plots between variables
 pairs(stroke_df) # pairs plot
 
+# density plots
 featurePlot(x = stroke_df[, 1:10], 
             y = stroke_df$stroke,
             scales = list(x = list(relation = "free"), 
@@ -69,6 +85,7 @@ featurePlot(x = stroke_df[, 1:10],
             auto.key = list(columns = 2),
             font = 2) # density plot
 
+# Histogram
 stroke_plot = stroke_df %>% 
   filter(stroke == 1) %>% 
   keep(is.numeric) %>% 
