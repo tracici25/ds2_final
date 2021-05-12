@@ -127,13 +127,21 @@ featurePlot(x = stroke1[, 1:3],
 ```{r}
 set.seed(1)
 
-indextrain <- createDataPartition(y = stroke2$id,
+indextrain <- createDataPartition(y = stroke2$stroke,
                                p = 0.8,
                                list = FALSE)
 
 x <- stroke2[indextrain, -c(4, 12)]
 
-y <- stroke2$stroke[indextrain, ]
+y <- stroke2$stroke[indextrain]
+
+x2 <- stroke2[-indextrain, -c(4, 12)]
+
+y2 <- stroke2$stroke[-indextrain]
+
+ctrl <- trainControl(method = "cv",
+                     summaryFunction = twoClassSummary,
+                     classProbs = TRUE)
 
 
 ```
