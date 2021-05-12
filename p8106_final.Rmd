@@ -36,6 +36,15 @@ library(e1071)
 library(mlbench)
 library(pROC)
 library(arsenal)
+library(visdat)
+library(pdp)
+library(vip)
+library(randomForest)
+library(ranger)
+library(gbm)
+library(e1071)
+library(kernlab)
+
 ```
 
 # Introduction
@@ -102,7 +111,14 @@ stroke2 = stroke1 %>%
     work_type = as.factor(work_type),
     residence_type = as.factor(residence_type),
     smoking_status = as.factor(smoking_status)
-  )
+  ) %>% 
+  mutate(
+    stroke = recode(
+    stroke,
+    '0' = 'No',
+    '1' = 'Yes'
+  )) %>% 
+  filter(gender != 2)
 ```
 
 # Exploratory analysis/ visualization
@@ -133,11 +149,11 @@ indextrain <- createDataPartition(y = stroke2$stroke,
 
 x <- stroke2[indextrain, -c(4, 12)]
 
-y <- stroke2$stroke[indextrain]
+y <- stroke2$stroke[indextrain]###train
 
 x2 <- stroke2[-indextrain, -c(4, 12)]
 
-y2 <- stroke2$stroke[-indextrain]
+y2 <- stroke2$stroke[-indextrain] ###test
 
 ctrl <- trainControl(method = "cv",
                      summaryFunction = twoClassSummary,
@@ -145,4 +161,123 @@ ctrl <- trainControl(method = "cv",
 
 
 ```
+
+## GLM
+```{r}
+model.glm = train(x = x,
+                  y = y,
+                  method = 'glm',
+                  metric = "ROC",
+                 trControl = ctrl)
+
+
+test.pred.prob = predict(model.glm, newdata = x2, type = "prob")[,1]
+test.pred = rep("Yes", length(test.pred.prob))
+test.pred[test.pred.prob<0.99] = "No"
+
+confusionMatrix(data = as.factor(test.pred),
+                reference = y2,
+                positive = "Yes")
+model.glm$bestTune
+
+```
+
+## MARS
+
+```{r}
+set.seed(1)
+model.mars <- train(x = x,
+                    y = y,
+                    method = "earth",
+                    tuneGrid = expand.grid(degree = 1:3, 
+                                           nprune = 2:15),
+                    metric = "ROC",
+                    trControl = ctrl)
+
+test.pred.prob = predict(model.mars, newdata = x2, type = "prob")[,1]
+test.pred = rep("Yes", length(test.pred.prob))
+test.pred[test.pred.prob<0.99] = "No"
+
+confusionMatrix(data = as.factor(test.pred),
+                reference = y2,
+                positive = "Yes")
+model.mars$bestTune
+
+```
+
+
+## GAM
+```{r}
+set.seed(1)
+model.gam <- train(x = x,
+                   y = y,
+                   method = "gam",
+                   metric = "ROC",
+                   trControl = ctrl)
+
+test.pred.prob = predict(model.gam, newdata = x2, type = "prob")[,1]
+test.pred = rep("Yes", length(test.pred.prob))
+test.pred[test.pred.prob<0.99] = "No"
+
+confusionMatrix(data = as.factor(test.pred),
+                reference = y2,
+                positive = "Yes")
+model.gam$bestTune
+
+```
+
+## LDA (from the midterm, LDA is the best among LDA, QDA and KNN)
+
+```{r}
+set.seed(1)
+model.lda = train(x = data.matrix(x),
+                  y = y,
+                  method = "lda",
+                  metric = "ROC",
+                  trControl = ctrl)
+
+test.pred.prob = predict(model.lda, newdata = data.matrix(x2), type = "prob")[,1]
+test.pred = rep("Yes", length(test.pred.prob))
+test.pred[test.pred.prob<0.99] = "No"
+
+confusionMatrix(data = as.factor(test.pred),
+                reference = y2,
+                positive = "Yes")
+model.lda$bestTune
+
+```
+
+
+```{r}
+
+
+```
+
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
