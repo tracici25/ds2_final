@@ -44,7 +44,6 @@ library(ranger)
 library(gbm)
 library(e1071)
 library(kernlab)
-
 ```
 
 # Introduction
@@ -61,15 +60,16 @@ stroke = read_csv("./healthcare-dataset-stroke-data.csv") %>%
 
 stroke1 = stroke %>% 
   janitor::clean_names() %>% 
+  na.omit() %>% 
   filter(
-    bmi != "N/A"
-  ) %>% 
+    bmi != "N/A",
+    gender != "Other"
+  ) %>%
   mutate(
     gender = recode(
       gender,
       "Male" = 0,
-      "Female" = 1,
-      "Other" = 2
+      "Female" = 1
     ),
     ever_married = recode(
       ever_married,
@@ -96,6 +96,11 @@ stroke1 = stroke %>%
       "smokes" = 2,
       "Unknown" = 3
     ),
+    stroke = recode(
+      stroke,
+     "0" = "No",
+     "1" = "Yes"
+    ),
     stroke = as.factor(stroke)
   ) %>% 
   relocate(
@@ -111,14 +116,7 @@ stroke2 = stroke1 %>%
     work_type = as.factor(work_type),
     residence_type = as.factor(residence_type),
     smoking_status = as.factor(smoking_status)
-  ) %>% 
-  mutate(
-    stroke = recode(
-    stroke,
-    '0' = 'No',
-    '1' = 'Yes'
-  )) %>% 
-  filter(gender != 2)
+    )
 ```
 
 # Exploratory analysis/ visualization
@@ -149,7 +147,7 @@ indextrain <- createDataPartition(y = stroke2$stroke,
 
 x <- stroke2[indextrain, -c(4, 12)]
 
-y <- stroke2$stroke[indextrain]###train
+y <- stroke2$stroke[indextrain] ###train
 
 x2 <- stroke2[-indextrain, -c(4, 12)]
 
@@ -158,8 +156,6 @@ y2 <- stroke2$stroke[-indextrain] ###test
 ctrl <- trainControl(method = "cv",
                      summaryFunction = twoClassSummary,
                      classProbs = TRUE)
-
-
 ```
 
 ## GLM
@@ -168,24 +164,25 @@ model.glm = train(x = x,
                   y = y,
                   method = 'glm',
                   metric = "ROC",
-                 trControl = ctrl)
+                  trControl = ctrl)
 
+glm.pred.prob = predict(model.glm, newdata = x2, type = "prob")[,1]
 
-test.pred.prob = predict(model.glm, newdata = x2, type = "prob")[,1]
-test.pred = rep("Yes", length(test.pred.prob))
-test.pred[test.pred.prob<0.99] = "No"
+glm.pred = rep("Yes", length(glm.pred.prob))
 
-confusionMatrix(data = as.factor(test.pred),
+glm.pred[glm.pred.prob < 0.95] = "No"
+
+confusionMatrix(data = as.factor(glm.pred),
                 reference = y2,
                 positive = "Yes")
-model.glm$bestTune
 
+model.glm$bestTune
 ```
 
 ## MARS
-
 ```{r}
 set.seed(1)
+
 model.mars <- train(x = x,
                     y = y,
                     method = "earth",
@@ -194,57 +191,63 @@ model.mars <- train(x = x,
                     metric = "ROC",
                     trControl = ctrl)
 
-test.pred.prob = predict(model.mars, newdata = x2, type = "prob")[,1]
-test.pred = rep("Yes", length(test.pred.prob))
-test.pred[test.pred.prob<0.99] = "No"
+mars.pred.prob = predict(model.mars, newdata = x2, type = "prob")[,1]
 
-confusionMatrix(data = as.factor(test.pred),
+mars.pred = rep("Yes", length(mars.pred.prob))
+
+mars.pred[mars.pred.prob < 0.95] = "No"
+
+confusionMatrix(data = as.factor(mars.pred),
                 reference = y2,
                 positive = "Yes")
+
 model.mars$bestTune
-
 ```
-
 
 ## GAM
 ```{r}
 set.seed(1)
+
 model.gam <- train(x = x,
                    y = y,
                    method = "gam",
                    metric = "ROC",
                    trControl = ctrl)
 
-test.pred.prob = predict(model.gam, newdata = x2, type = "prob")[,1]
-test.pred = rep("Yes", length(test.pred.prob))
-test.pred[test.pred.prob<0.99] = "No"
+gam.pred.prob = predict(model.gam, newdata = x2, type = "prob")[,1]
 
-confusionMatrix(data = as.factor(test.pred),
+gam.pred = rep("Yes", length(gam.pred.prob))
+
+gam.pred[gam.pred.prob < 0.95] = "No"
+
+confusionMatrix(data = as.factor(gam.pred),
                 reference = y2,
                 positive = "Yes")
-model.gam$bestTune
 
+model.gam$bestTune
 ```
 
 ## LDA (from the midterm, LDA is the best among LDA, QDA and KNN)
-
 ```{r}
 set.seed(1)
+
 model.lda = train(x = data.matrix(x),
                   y = y,
                   method = "lda",
                   metric = "ROC",
                   trControl = ctrl)
 
-test.pred.prob = predict(model.lda, newdata = data.matrix(x2), type = "prob")[,1]
-test.pred = rep("Yes", length(test.pred.prob))
-test.pred[test.pred.prob<0.99] = "No"
+lda.pred.prob = predict(model.lda, newdata = data.matrix(x2), type = "prob")[,1]
 
-confusionMatrix(data = as.factor(test.pred),
+lda.pred = rep("Yes", length(lda.pred.prob))
+
+lda.pred[lda.pred.prob < 0.95] = "No"
+
+confusionMatrix(data = as.factor(lda.pred),
                 reference = y2,
                 positive = "Yes")
-model.lda$bestTune
 
+model.lda$bestTune
 ```
 
 ## Random Forest
@@ -252,7 +255,9 @@ model.lda$bestTune
 rf.grid <- expand.grid(mtry = 1:10,
                        splitrule = "gini",
                        min.node.size = seq(from = 2, to = 10, by = 2))
-set.seed(2)
+
+set.seed(1)
+
 model.rf <- train(x = x,
                   y = y,
                 method = "ranger",
@@ -262,28 +267,58 @@ model.rf <- train(x = x,
 
 ggplot(model.rf, highlight = TRUE)
 
-test.pred.prob = predict(model.rf, newdata = x2, type = "prob")[,1]
+rf.pred.prob = predict(model.rf, newdata = x2, type = "prob")[,1]
+
+rf.pred = rep("Yes", length(rf.pred.prob))
+
+rf.pred[rf.pred.prob < 0.95] = "No"
+
+confusionMatrix(data = as.factor(rf.pred),
+                reference = y2,
+                positive = "Yes")
+
+model.rf$bestTune
+```
+
+## gbmA
+```{r}
+gbmA.grid <- expand.grid(n.trees = c(2000,3000,4000),
+                         interaction.depth = 1:6,
+                         shrinkage = c(0.001,0.003,0.005),
+                         n.minobsinnode = 1)
+
+set.seed(1)
+
+model.gbma <- train(x = x,
+                  y = y,
+                  tuneGrid = gbmA.grid,
+                  trControl = ctrl,
+                  method = "gbm",
+                  distribution = "adaboost",
+                  metric = "ROC",
+                  verbose = FALSE)
+
+ggplot(model.gbma, highlight = TRUE)
+
+test.pred.prob = predict(model.gbma, newdata = x2, type = "prob")[,1]
+
 test.pred = rep("Yes", length(test.pred.prob))
-test.pred[test.pred.prob<0.99] = "No"
+
+test.pred[test.pred.prob < 0.95] = "No"
 
 confusionMatrix(data = as.factor(test.pred),
                 reference = y2,
                 positive = "Yes")
-model.rf$bestTune
 
+model.gbma$bestTune
 ```
 
-
+## svml
 ```{r}
 
-
 ```
 
-```{r}
-
-
-```
-
+## svmr
 ```{r}
 
 
