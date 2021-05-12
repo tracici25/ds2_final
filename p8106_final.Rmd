@@ -404,21 +404,10 @@ res <- resamples(list(glm = model.glm,
                       gam = model.gam,
                       lda = model.lda,
                       rf = model.rf,
-                      gbmA = gbmA.fit))
+                      gbmA = model.gbma))
 
 summary(res)
 
 bwplot(res, metric = "ROC")
 ```
-
-
-
-
-
-
-
-
-
-
-
 
