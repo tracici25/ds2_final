@@ -57,7 +57,7 @@ stroke = read_csv("./healthcare-dataset-stroke-data.csv") %>%
   mutate(
     bmi = as.numeric(bmi)
   ) %>% 
-  dplyr::select(-id)
+  dplyr::select(-id, -Residence_type, -ever_married)
 
 stroke1 = stroke %>% 
   janitor::clean_names() %>% 
@@ -72,11 +72,6 @@ stroke1 = stroke %>%
       "Male" = 0,
       "Female" = 1
     ),
-    ever_married = recode(
-      ever_married,
-      "No" = 0,
-      "Yes" = 1
-    ),
     work_type = recode(
       work_type,
       "children" = 0,
@@ -84,11 +79,6 @@ stroke1 = stroke %>%
       "Never_worked" = 2,
       "Private" = 3,
       "Self-employed" = 4
-    ),
-    residence_type = recode(
-      residence_type,
-      "Rural" = 0,
-      "Urban" = 1
     ),
     smoking_status = recode(
       smoking_status,
@@ -106,9 +96,7 @@ stroke1 = stroke %>%
     gender = as.factor(gender),
     hypertension = as.factor(hypertension),
     heart_disease = as.factor(heart_disease),
-    ever_married = as.factor(ever_married),
     work_type = as.factor(work_type),
-    residence_type = as.factor(residence_type),
     smoking_status = as.factor(smoking_status)
   ) %>% 
   relocate(
@@ -119,7 +107,7 @@ stroke1 = stroke %>%
 # Exploratory analysis/ visualization
 
 ```{r}
-stats = tableby(stroke ~ gender + age + hypertension + heart_disease + ever_married + work_type + Residence_type + avg_glucose_level + bmi + smoking_status, data = stroke)
+stats = tableby(stroke ~ gender + age + hypertension + heart_disease + work_type + avg_glucose_level + bmi + smoking_status, data = stroke)
 
 summary(stats, text = TRUE) %>% knitr::kable()
 
@@ -146,22 +134,17 @@ train = stroke1[indextrain, ]
 
 test = stroke1[-indextrain, ]
 
-x <- stroke1[indextrain, -c(11)]
+x <- stroke1[indextrain, -c(9)]
 
 y <- stroke1$stroke[indextrain] ###train
 
-x2 <- stroke1[-indextrain, -c(11)]
+x2 <- stroke1[-indextrain, -c(9)]
 
 y2 <- stroke1$stroke[-indextrain] ###test
 
 ctrl <- trainControl(method = "cv",
                      summaryFunction = twoClassSummary,
                      classProbs = TRUE)
-```
-
-## Variable Importance
-```{r}
-
 ```
 
 ## GLM
