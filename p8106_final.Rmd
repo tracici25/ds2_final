@@ -55,9 +55,14 @@ Stroke is a serious life-threatening medical condition. According to the World H
 ```{r}
 stroke = read_csv("./healthcare-dataset-stroke-data.csv") %>% 
   mutate(
-    bmi = as.numeric(bmi)
+    bmi = as.numeric(bmi),
+    gender = as.factor(gender),
+    hypertension = as.factor(hypertension),
+    heart_disease = as.factor(heart_disease),
+    work_type = as.factor(work_type),
+    smoking_status = as.factor(smoking_status)
   ) %>% 
-  dplyr::select(-id, -Residence_type, -ever_married)
+  dplyr::select(-id, -Residence_type, -ever_married, -smoking_status, -work_type)
 
 stroke1 = stroke %>% 
   janitor::clean_names() %>% 
@@ -72,32 +77,12 @@ stroke1 = stroke %>%
       "Male" = 0,
       "Female" = 1
     ),
-    work_type = recode(
-      work_type,
-      "children" = 0,
-      "Govt_job" = 1,
-      "Never_worked" = 2,
-      "Private" = 3,
-      "Self-employed" = 4
-    ),
-    smoking_status = recode(
-      smoking_status,
-      "formerly smoked" = 0,
-      "never smoked" = 1,
-      "smokes" = 2,
-      "Unknown" = 3
-    ),
     stroke = recode(
       stroke,
      "0" = "No",
      "1" = "Yes"
     ),
-    stroke = as.factor(stroke),
-    gender = as.factor(gender),
-    hypertension = as.factor(hypertension),
-    heart_disease = as.factor(heart_disease),
-    work_type = as.factor(work_type),
-    smoking_status = as.factor(smoking_status)
+    stroke = as.factor(stroke)
   ) %>% 
   relocate(
     age, avg_glucose_level, bmi
@@ -107,7 +92,7 @@ stroke1 = stroke %>%
 # Exploratory analysis/ visualization
 
 ```{r}
-stats = tableby(stroke ~ gender + age + hypertension + heart_disease + work_type + avg_glucose_level + bmi + smoking_status, data = stroke)
+stats = tableby(stroke ~ gender + age + hypertension + heart_disease + avg_glucose_level + bmi, data = stroke)
 
 summary(stats, text = TRUE) %>% knitr::kable()
 
@@ -134,11 +119,11 @@ train = stroke1[indextrain, ]
 
 test = stroke1[-indextrain, ]
 
-x <- stroke1[indextrain, -c(9)]
+x <- stroke1[indextrain, -c(7)]
 
 y <- stroke1$stroke[indextrain] ###train
 
-x2 <- stroke1[-indextrain, -c(9)]
+x2 <- stroke1[-indextrain, -c(7)]
 
 y2 <- stroke1$stroke[-indextrain] ###test
 
@@ -159,7 +144,7 @@ glm.pred.prob = predict(model.glm, newdata = x2, type = "prob")[,1]
 
 glm.pred = rep("Yes", length(glm.pred.prob))
 
-glm.pred[glm.pred.prob < 0.95] = "No"
+glm.pred[glm.pred.prob < 0.99] = "No"
 
 confusionMatrix(data = as.factor(glm.pred),
                 reference = y2,
@@ -186,7 +171,7 @@ glmn.pred.prob = predict(model.glmn, newdata = data.matrix(x2), type = "prob")[,
 
 glmn.pred = rep("Yes", length(glmn.pred.prob))
 
-glmn.pred[glmn.pred.prob < 0.95] = "No"
+glmn.pred[glmn.pred.prob < 0.99] = "No"
 
 confusionMatrix(data = as.factor(glmn.pred),
                 reference = y2,
@@ -211,7 +196,7 @@ mars.pred.prob = predict(model.mars, newdata = x2, type = "prob")[,1]
 
 mars.pred = rep("Yes", length(mars.pred.prob))
 
-mars.pred[mars.pred.prob < 0.95] = "No"
+mars.pred[mars.pred.prob < 0.99] = "No"
 
 confusionMatrix(data = as.factor(mars.pred),
                 reference = y2,
@@ -234,7 +219,7 @@ gam.pred.prob = predict(model.gam, newdata = x2, type = "prob")[,1]
 
 gam.pred = rep("Yes", length(gam.pred.prob))
 
-gam.pred[gam.pred.prob < 0.95] = "No"
+gam.pred[gam.pred.prob < 0.99] = "No"
 
 confusionMatrix(data = as.factor(gam.pred),
                 reference = y2,
@@ -257,7 +242,7 @@ lda.pred.prob = predict(model.lda, newdata = data.matrix(x2), type = "prob")[,1]
 
 lda.pred = rep("Yes", length(lda.pred.prob))
 
-lda.pred[lda.pred.prob < 0.95] = "No"
+lda.pred[lda.pred.prob < 0.99] = "No"
 
 confusionMatrix(data = as.factor(lda.pred),
                 reference = y2,
@@ -268,7 +253,7 @@ model.lda$bestTune
 
 ## Random Forest
 ```{r}
-rf.grid <- expand.grid(mtry = 1:10,
+rf.grid <- expand.grid(mtry = 1:6,
                        splitrule = "gini",
                        min.node.size = seq(from = 2, to = 10, by = 2))
 
@@ -288,7 +273,7 @@ rf.pred.prob = predict(model.rf, newdata = x2, type = "prob")[,1]
 
 rf.pred = rep("Yes", length(rf.pred.prob))
 
-rf.pred[rf.pred.prob < 0.95] = "No"
+rf.pred[rf.pred.prob < 0.99] = "No"
 
 confusionMatrix(data = as.factor(rf.pred),
                 reference = y2,
@@ -325,7 +310,7 @@ test.pred.prob = predict(model.gbma, newdata = x2, type = "prob")[,1]
 
 test.pred = rep("Yes", length(test.pred.prob))
 
-test.pred[test.pred.prob < 0.95] = "No"
+test.pred[test.pred.prob < 0.99] = "No"
 
 confusionMatrix(data = as.factor(test.pred),
                 reference = y2,
@@ -352,7 +337,7 @@ svml.pred.prob = predict(model.svml, newdata = x2, type = "prob")[,1]
 
 svml.pred = rep("Yes", length(svml.pred.prob))
 
-svml.pred[svml.pred.prob < 0.95] = "No"
+svml.pred[svml.pred.prob < 0.99] = "No"
 
 confusionMatrix(data = as.factor(svml.pred),
                 reference = y2,
@@ -381,7 +366,7 @@ svmr.pred.prob = predict(model.svmr, newdata = x2, type = "prob")[,1]
 
 svmr.pred = rep("Yes", length(svmr.pred.prob))
 
-svmr.pred[svmr.pred.prob < 0.95] = "No"
+svmr.pred[svmr.pred.prob < 0.99] = "No"
 
 confusionMatrix(data = as.factor(svmr.pred),
                 reference = y2,
