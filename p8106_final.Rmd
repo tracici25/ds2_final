@@ -56,7 +56,8 @@ Stroke is a serious life-threatening medical condition. According to the World H
 stroke = read_csv("./healthcare-dataset-stroke-data.csv") %>% 
   mutate(
     bmi = as.numeric(bmi)
-  )
+  ) %>% 
+  dplyr::select(-id)
 
 stroke1 = stroke %>% 
   janitor::clean_names() %>% 
@@ -101,14 +102,7 @@ stroke1 = stroke %>%
      "0" = "No",
      "1" = "Yes"
     ),
-    stroke = as.factor(stroke)
-  ) %>% 
-  relocate(
-    age, avg_glucose_level, bmi
-  )
-
-stroke2 = stroke1 %>% 
-  mutate(
+    stroke = as.factor(stroke),
     gender = as.factor(gender),
     hypertension = as.factor(hypertension),
     heart_disease = as.factor(heart_disease),
@@ -116,7 +110,10 @@ stroke2 = stroke1 %>%
     work_type = as.factor(work_type),
     residence_type = as.factor(residence_type),
     smoking_status = as.factor(smoking_status)
-    )
+  ) %>% 
+  relocate(
+    age, avg_glucose_level, bmi
+  )
 ```
 
 # Exploratory analysis/ visualization
@@ -141,27 +138,36 @@ featurePlot(x = stroke1[, 1:3],
 ```{r}
 set.seed(1)
 
-indextrain <- createDataPartition(y = stroke2$stroke,
+indextrain <- createDataPartition(y = stroke1$stroke,
                                p = 0.8,
                                list = FALSE)
 
-x <- stroke2[indextrain, -c(4, 12)]
+train = stroke1[indextrain, ]
 
-y <- stroke2$stroke[indextrain] ###train
+test = stroke1[-indextrain, ]
 
-x2 <- stroke2[-indextrain, -c(4, 12)]
+x <- stroke1[indextrain, -c(11)]
 
-y2 <- stroke2$stroke[-indextrain] ###test
+y <- stroke1$stroke[indextrain] ###train
+
+x2 <- stroke1[-indextrain, -c(11)]
+
+y2 <- stroke1$stroke[-indextrain] ###test
 
 ctrl <- trainControl(method = "cv",
                      summaryFunction = twoClassSummary,
                      classProbs = TRUE)
 ```
 
+## Variable Importance
+```{r}
+
+```
+
 ## GLM
 ```{r}
-model.glm = train(x = x,
-                  y = y,
+model.glm = train(stroke ~ . , 
+                  data = train,
                   method = 'glm',
                   metric = "ROC",
                   trControl = ctrl)
@@ -210,8 +216,8 @@ model.glmn$bestTune
 ```{r}
 set.seed(1)
 
-model.mars <- train(x = x,
-                    y = y,
+model.mars <- train(stroke ~ . , 
+                    data = train,
                     method = "earth",
                     tuneGrid = expand.grid(degree = 1:3, 
                                            nprune = 2:15),
@@ -235,8 +241,8 @@ model.mars$bestTune
 ```{r}
 set.seed(1)
 
-model.gam <- train(x = x,
-                   y = y,
+model.gam <- train(stroke ~ . , 
+                   data = train,
                    method = "gam",
                    metric = "ROC",
                    trControl = ctrl)
@@ -285,12 +291,13 @@ rf.grid <- expand.grid(mtry = 1:10,
 
 set.seed(1)
 
-model.rf <- train(x = x,
-                  y = y,
+model.rf <- train(stroke ~ . , 
+                  data = train,
                 method = "ranger",
                 tuneGrid = rf.grid,
                 metric = "ROC",
-                trControl = ctrl)
+                trControl = ctrl,
+                importance = "permutation")
 
 ggplot(model.rf, highlight = TRUE)
 
@@ -305,6 +312,10 @@ confusionMatrix(data = as.factor(rf.pred),
                 positive = "Yes")
 
 model.rf$bestTune
+
+barplot(sort(ranger::importance(model.rf$finalModel), decreasing = FALSE),
+        las = 2, horiz = TRUE, cex.names = 0.7,
+        col = colorRampPalette(colors = c("cyan","blue"))(19))
 ```
 
 ## gbmA
@@ -316,8 +327,8 @@ gbmA.grid <- expand.grid(n.trees = c(2000,3000,4000),
 
 set.seed(1)
 
-model.gbma <- train(x = x,
-                  y = y,
+model.gbma <- train(stroke ~ . , 
+                  data = train,
                   tuneGrid = gbmA.grid,
                   trControl = ctrl,
                   method = "gbm",
@@ -344,10 +355,12 @@ model.gbma$bestTune
 ```{r}
 set.seed(1)
 
-model.svml <- train(x = x,
-                  y = y, 
+model.svml <- train(stroke ~ . , 
+                  data = train, 
                   method = "svmLinear",
-                  tuneGrid = data.frame(C = exp(seq(0,2,len = 20))),
+                  preProcess = c("center", "scale"),
+                  tuneGrid = data.frame(C = exp(seq(0, 2,len = 20))),
+                  metric = "ROC",
                   trControl = ctrl)
 
 plot(model.svml, highlight = TRUE, xTrans = log)
@@ -370,11 +383,10 @@ model.svml$bestTune
 svmr.grid <- expand.grid(C = exp(seq(-1,4,len = 10)),
                          sigma = exp(seq(-8,0,len = 10)))
 
-
 set.seed(1)
 
-model.svmr <- train(x = x,
-                  y = y,
+model.svmr <- train(stroke ~ . , 
+                  data = train,
                   method = "svmRadialSigma",
                   preProcess = c("center", "scale"),
                   tuneGrid = svmr.grid,
@@ -404,7 +416,9 @@ res <- resamples(list(glm = model.glm,
                       gam = model.gam,
                       lda = model.lda,
                       rf = model.rf,
-                      gbmA = model.gbma))
+                      gbmA = model.gbma,
+                      svml = model.svml,
+                      svmr = model.svmr))
 
 summary(res)
 
