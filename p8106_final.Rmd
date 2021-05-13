@@ -143,7 +143,7 @@ glm.pred.prob = predict(model.glm, newdata = x2, type = "prob")[,1]
 
 glm.pred = rep("No", length(glm.pred.prob))
 
-glm.pred[glm.pred.prob < 0.9] = "Yes"
+glm.pred[glm.pred.prob < 0.6] = "Yes"
 
 confusionMatrix(data = as.factor(glm.pred),
                 reference = y2,
@@ -170,7 +170,7 @@ glmn.pred.prob = predict(model.glmn, newdata = data.matrix(x2), type = "prob")[,
 
 glmn.pred = rep("No", length(glmn.pred.prob))
 
-glmn.pred[glmn.pred.prob < 0.9] = "Yes"
+glmn.pred[glmn.pred.prob < 0.6] = "Yes"
 
 confusionMatrix(data = as.factor(glmn.pred),
                 reference = y2,
@@ -195,7 +195,7 @@ mars.pred.prob = predict(model.mars, newdata = x2, type = "prob")[,1]
 
 mars.pred = rep("No", length(mars.pred.prob))
 
-mars.pred[mars.pred.prob < 0.9] = "Yes"
+mars.pred[mars.pred.prob < 0.6] = "Yes"
 
 confusionMatrix(data = as.factor(mars.pred),
                 reference = y2,
@@ -218,7 +218,7 @@ gam.pred.prob = predict(model.gam, newdata = x2, type = "prob")[,1]
 
 gam.pred = rep("No", length(gam.pred.prob))
 
-gam.pred[gam.pred.prob < 0.9] = "Yes"
+gam.pred[gam.pred.prob < 0.6] = "Yes"
 
 confusionMatrix(data = as.factor(gam.pred),
                 reference = y2,
@@ -241,7 +241,7 @@ lda.pred.prob = predict(model.lda, newdata = data.matrix(x2), type = "prob")[,1]
 
 lda.pred = rep("No", length(lda.pred.prob))
 
-lda.pred[lda.pred.prob < 0.9] = "Yes"
+lda.pred[lda.pred.prob < 0.6] = "Yes"
 
 confusionMatrix(data = as.factor(lda.pred),
                 reference = y2,
@@ -272,7 +272,7 @@ rf.pred.prob = predict(model.rf, newdata = x2, type = "prob")[,1]
 
 rf.pred = rep("No", length(rf.pred.prob))
 
-rf.pred[rf.pred.prob < 0.9] = "Yes"
+rf.pred[rf.pred.prob < 0.6] = "Yes"
 
 confusionMatrix(data = as.factor(rf.pred),
                 reference = y2,
@@ -309,7 +309,7 @@ test.pred.prob = predict(model.gbma, newdata = x2, type = "prob")[,1]
 
 test.pred = rep("No", length(test.pred.prob))
 
-test.pred[test.pred.prob < 0.9] = "Yes"
+test.pred[test.pred.prob < 0.6] = "Yes"
 
 confusionMatrix(data = as.factor(test.pred),
                 reference = y2,
@@ -336,7 +336,7 @@ svml.pred.prob = predict(model.svml, newdata = x2, type = "prob")[,1]
 
 svml.pred = rep("No", length(svml.pred.prob))
 
-svml.pred[svml.pred.prob < 0.9] = "Yes"
+svml.pred[svml.pred.prob < 0.6] = "Yes"
 
 confusionMatrix(data = as.factor(svml.pred),
                 reference = y2,
@@ -365,7 +365,7 @@ svmr.pred.prob = predict(model.svmr, newdata = x2, type = "prob")[,1]
 
 svmr.pred = rep("No", length(svmr.pred.prob))
 
-svmr.pred[svmr.pred.prob < 0.9] = "Yes"
+svmr.pred[svmr.pred.prob < 0.6] = "Yes"
 
 confusionMatrix(data = as.factor(svmr.pred),
                 reference = y2,
